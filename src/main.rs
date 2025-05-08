@@ -1,9 +1,11 @@
 use eframe::egui;
+use egui_file_dialog::FileDialog;
 use crate::egui::Image;
 use crate::egui::ImageButton;
 use crate::egui::RichText;
 use crate::egui::Ui;
 use crate::egui::Rect;
+use crate::egui::Color32;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::collections::HashMap;
@@ -18,6 +20,7 @@ fn main() {
 #[derive(Default)]
 struct Mosaico {
     loaded_file: Option<File>,
+    file_dialog: FileDialog,
 }
 
 impl Mosaico {
@@ -32,6 +35,7 @@ impl Mosaico {
         // Restore app state using cc.storage (requires the "persistence" feature).
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
+
         Self::default()
     }
 }
@@ -59,37 +63,57 @@ impl eframe::App for Mosaico {
         egui::TopBottomPanel::top("topBar").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.menu_button("File", |ui| {
+                    
+                    // create new file
                     if ui.button("New").clicked() {
                         file_handler::create_file();
                     }
+                    
+                    // open file
                     if ui.button("Open").clicked() {
-                        let file_content = file_handler::get_file();
-                        match serde_json::from_str(&file_content) {
-                            Ok(file) => {
-                                self.loaded_file = Some(file);
-                            }
-                            Err(e) => {
-                                eprint!("THIS IS SO SAD: couldn't parse json: {}", e);
-                            }
-                        }
+                        // open file dialog to select file
+                        self.file_dialog.pick_file();
                     }
+
+                    // save file
                     if ui.button("Save").clicked() {
                         file_handler::save_file();
                     }
+
+                    // save file as
                     if ui.button("Save as...").clicked() {
                         todo!();
                     }
-                    });
-                    ui.menu_button("Edit", |ui| {
-                        if ui.button("todo!").clicked() {
-                            todo!();
+                });
+
+                // file picker logic
+                if let Some(path) = self.file_dialog.update(ctx).picked() {
+                    let file_content = file_handler::get_file(&path);
+                    match serde_json::from_str(&file_content) {
+                        Ok(file) => {
+                            self.loaded_file = Some(file);
                         }
-                    });
-                    ui.menu_button("Help", |ui| {
-                        if ui.button("todo!").clicked() {
-                            todo!();
+                        Err(e) => {
+                            eprint!("THIS IS SO SAD: couldn't parse json: {}", e);
                         }
-                    });
+                    }
+                };
+
+                // edit menu 
+                ui.menu_button("Edit", |ui| {
+                    
+                    if ui.button("todo!").clicked() {
+                        todo!();
+                    }
+                });
+
+                // help menu
+                ui.menu_button("Help", |ui| {
+                    
+                    if ui.button("todo!").clicked() {
+                        todo!();
+                    }
+                });
             })
             
         });
@@ -183,6 +207,11 @@ impl eframe::App for Mosaico {
 
         // central canvas area
         egui::CentralPanel::default()
+        // different background color for central panel
+        .frame(egui::Frame {
+            fill: egui::Color32::from_rgb(28, 28, 28),
+            ..Default::default()
+        })
         .show(ctx, |ui| {
             ui.label(RichText::new("Hello World").heading());
         });
